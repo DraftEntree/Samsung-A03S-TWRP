@@ -26,6 +26,7 @@ jobs:
     - name: Configurar el dispositivo
       run: |
         cd twrp
+        git clone https://android.googlesource.com/platform/build
         export ALLOW_MISSING_DEPENDENCIES=true
         source build/envsetup.sh
         lunch omni_a03s-eng
