@@ -31,49 +31,35 @@ env:
   IMAGE: image
   SYM: _
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-      
-     - name: Setup Environment
-  run: |
-    sudo apt update && sudo apt install git -y
-    if [ ! -d "pkg" ]; then
-      git clone https://github.com/SA-17/rm_pkg pkg && cd pkg && bash setup.sh
-    fi
-    sudo -E apt-get -qq update
-    sudo -E apt-get -qq install bc build-essential tar zip curl libstdc++6 git wget python gcc clang libssl-dev repo rsync flex curl bison aria2
-    if ! command -v repo &> /dev/null; then
-      sudo curl --create-dirs -L -o /usr/local/bin/repo -O -L https://storage.googleapis.com/git-repo-downloads/repo
-      sudo chmod a+rx /usr/local/bin/repo
-    fi
+    - name: remove pkg and setting repo
+         run: |
+            sudo apt update && sudo apt install git
+            git clone https://github.com/SA-17/rm_pkg pkg && cd pkg && bash setup.sh
+            cd .. && sudo -E apt-get -qq update
+            sudo -E apt-get -qq install bc build-essential tar zip curl libstdc++6 git wget python gcc clang libssl-dev repo rsync flex curl  bison aria2
+            sudo curl --create-dirs -L -o /usr/local/bin/repo -O -L https://storage.googleapis.com/git-repo-downloads/repo
+            sudo chmod a+rx /usr/local/bin/repo
+            
+       - name: Adding and Sync source
+         run: |   
+             mkdir work
+             cd work
+             repo init -u $MANIFEST -b $BRANCH --depth=1              
+             repo sync -c -j700 --force-sync --no-clone-bundle --no-tags
+             git clone $DT_LINK --depth=1 --single-branch device/$MANUFACTURER/$DEVICE          
+             
+       - name: Build recovery
+         run: |
+              cd work
+              . build/envsetup.sh && lunch $OT$SYM$DEVICE-$BTYPE && export ALLOW_MISSING_DEPENDENCIES=true && mka $TARGET$IMAGE -j15
 
-- name: Adding and Sync source
-  run: |
-    mkdir work
-    cd work
-    repo init -u $MANIFEST -b $BRANCH --depth=1
-    repo sync -c -j700 --force-sync --no-clone-bundle --no-tags
-    if [ ! -d "device/$MANUFACTURER/$DEVICE" ]; then
-      git clone $DT_LINK --depth=1 --single-branch device/$MANUFACTURER/$DEVICE
-    fi
-
-- name: Build recovery
-  run: |
-    cd work
-    source build/envsetup.sh && lunch $OT$SYM$DEVICE-$BTYPE
-    export ALLOW_MISSING_DEPENDENCIES=true
-    mka $TARGET$IMAGE -j15
-
-- name: Release recovery
-  uses: softprops/action-gh-release@v1
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  with:
-    name: recovery for $DEVICE
-    files: |
-      work/out/target/product/$DEVICE/recovery.$FORMAT
+       - name: Release recovery
+         uses: softprops/action-gh-release@v1
+         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+         with:
+          name: recovery for $DEVICE
+          files: | 
+            work/out/target/product/$DEVICE/recovery.$FORMAT
+            
+            
