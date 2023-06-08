@@ -31,7 +31,15 @@ env:
   IMAGE: image
   SYM: _
 
-    - name: remove pkg and setting repo
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+       - name: Init the System
+         uses: actions/checkout@master
+                               
+       - name: remove pkg and setting repo
          run: |
             sudo apt update && sudo apt install git
             git clone https://github.com/SA-17/rm_pkg pkg && cd pkg && bash setup.sh
@@ -61,5 +69,4 @@ env:
           name: recovery for $DEVICE
           files: | 
             work/out/target/product/$DEVICE/recovery.$FORMAT
-            
-            
+
