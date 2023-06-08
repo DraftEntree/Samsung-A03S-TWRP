@@ -10,6 +10,12 @@ jobs:
        - name: Init the System
          uses: actions/checkout@master
 
+       - name: Install repo
+         run: |
+            sudo curl --create-dirs -L -o /usr/local/bin/repo -O -L https://storage.googleapis.com/git-repo-downloads/repo
+            sudo chmod a+rx /usr/local/bin/repo
+
+
        - name: remove pkg and setting repo
          run: |
             sudo apt update && sudo apt install wget zip
