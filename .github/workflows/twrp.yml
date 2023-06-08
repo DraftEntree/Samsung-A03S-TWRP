@@ -27,6 +27,7 @@ jobs:
       run: |
         cd twrp
         git clone https://android.googlesource.com/platform/build
+        git clone https://github.com/twrpdtgen/android_device_samsung_a03s
         export ALLOW_MISSING_DEPENDENCIES=true
         source build/envsetup.sh
         lunch omni_a03s-eng
