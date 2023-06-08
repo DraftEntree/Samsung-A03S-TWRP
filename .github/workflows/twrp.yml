@@ -1,51 +1,46 @@
-name: Compilar TWRP
-
+name: Build recovery(twrp,shrp,pbrp)
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   build:
-    name: Compilación de TWRP
-    runs-on: ubuntu-latest
-    
+    runs-on: ubuntu-18.04
+
     steps:
-    - name: Configurar ambiente
-      run: |
-        sudo apt update
-        sudo apt install -y git python3 python-is-python3 android-tools-adb android-tools-fastboot
-        
-    - name: Clonar repositorio TWRP
-      run: |
-        git clone https://github.com/TeamWin/Team-Win-Recovery-Project.git twrp
-        cd twrp
-        git submodule init
-        git submodule update
-        
-    - name: Configurar el dispositivo
-      run: |
-        cd twrp
-        git clone https://android.googlesource.com/platform/build
-        mkdir device
-        cd device
-        mkdir samsung
-        cd samsung
-        mkdir a03s
-        cd a03s
-        git clone https://github.com/twrpdtgen/android_device_samsung_a03s
-        cd /home/runner/work/twrp
-        export ALLOW_MISSING_DEPENDENCIES=true
-        source build/envsetup.sh
-        lunch omni_a03s-eng
-        
-    - name: Compilar TWRP
-      run: |
-        cd twrp
-        mka recoveryimage
-        
-    - name: Subir archivo TWRP
-      uses: actions/upload-artifact@v2
-      with:
-        name: twrp-recovery
-        path: twrp/out/target/product/a03s/recovery.img
+       - name: Init the System
+         uses: actions/checkout@master
+
+       - name: remove pkg and setting repo
+         run: |
+            sudo apt update && sudo apt install wget zip
+            wget -qO - https://github.com/SA-17/Recovery_builder/raw/main/scripts/cleanup.sh  | bash
+            sudo -E apt-get -qq update
+            sudo -E apt-get -qq install bc build-essential tar zip curl libstdc++6 git wget python gcc clang libssl-dev repo rsync flex curl  bison aria2
+            sudo curl --create-dirs -L -o /usr/local/bin/repo -O -L https://storage.googleapis.com/git-repo-downloads/repo
+            sudo chmod a+rx /usr/local/bin/repo
+       - name: Adding and Sync source
+         run: |
+             source config.sh
+             mkdir work
+             cd work
+             repo init -u $MANIFEST -b $BRANCH --depth=1
+             repo sync -c -j`nproc` --force-sync --no-clone-bundle --no-tags
+             git clone $DT_LINK -b $DT_BRANCH device/$VENDOR/$DEVICE
+       - name: Build recovery
+         run: |
+              source config.sh
+              cd work
+              . build/envsetup.sh && lunch $TYPE$SYM$DEVICE-eng && export ALLOW_MISSING_DEPENDENCIES=true && mka $TARGET -j`nproc`
+       - name: Making file
+         run: |
+              source config.sh
+              cd work
+              wget -qO - https://github.com/SA-17/Recovery_builder/raw/main/scripts/bake.sh  | bash
+       - name: Release recovery
+         uses: softprops/action-gh-release@v1
+         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+         with:
+          tag_name: ${{ github.run_id }}
+          name: recovery image
+          files: work/recovery.zip
