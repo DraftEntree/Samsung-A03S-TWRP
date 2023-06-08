@@ -34,6 +34,7 @@ jobs:
         mkdir a03s
         cd a03s
         git clone https://github.com/twrpdtgen/android_device_samsung_a03s
+        cd /home/runner/work/twrp
         export ALLOW_MISSING_DEPENDENCIES=true
         source build/envsetup.sh
         lunch omni_a03s-eng
